@@ -1,3 +1,8 @@
+/*
+ApiError is we have defined as  a custom error class used to send structured, consistent API errors across your backend.
+ */
+
+
 class ApiError extends Error{
     constructor(  // by default
         statusCode,
@@ -5,8 +10,8 @@ class ApiError extends Error{
         errors = [],
         stack = ""
     ){ // overriding the constructor
-        super(message)
-        this.statusCode = statusCode
+        super(message) //calling parent constructor(Error's constructor) without this , this. is undefined
+        this.statusCode = statusCode  // these below parameter are telling the api error format 
         this.data = null
         this.message = message
         this.success = false
