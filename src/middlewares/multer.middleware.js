@@ -6,7 +6,7 @@ const storage = multer.diskStorage({
     },
     filename: function (req,file,cb) {
         cb(null,file.originalname) // you can later modify because files with same name
-    }
+    } //we will get that name in response
 })
 
 export const upload = multer({
