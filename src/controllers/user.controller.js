@@ -256,7 +256,7 @@ const updateAccountDetails = asyncHandler(async(req,res)=>{
         throw new ApiError(400,"All fields are required")
     }
 
-    const user = User.findByIdAndUpdate(req.user?._id,
+    const user = await User.findByIdAndUpdate(req.user?._id,
     {
         $set: { //it is used to set the multiple values
             fullname, //as in our model also it has same name
@@ -323,4 +323,87 @@ const updateUserCoverImage = asyncHandler(async(req,res) => {
     .json(new ApiResponse(200,user,"Cover Image updated succesfully"))
 })
 
-export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUserCoverImage}
+const getUserChannelProfile = asyncHandler(async(req,res)=>{
+    const {username} = req.params //as user will ask in search that user profile he want to see
+
+
+    if(!username?.trim()){
+        throw new ApiError(400,"username is missing")
+    }
+
+    //writing aggregation pipelines
+
+    //we will actually perform a join operation with User as our local to our subscriptions 
+    const channel = await User.aggregate([
+        {
+            $match: { // first we need for which user we want the profile details etc so it will lower down the search space of User model by parsing only that document of User which has this username
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup:{ //we are here looking in the subscriptions model those entries for which our current user is matching with the channel , thus we will get all document of subscriptions in which current user is equal to the channel in the subscription document and stored as subscribers
+                from:"subscriptions",
+                 // as Our Subscription data model will be save in mongo db as subcriptions
+                localField: "_id", //id of that selected user in match
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            $lookup: {//here we will get how many user did current user subscribed, current user ki id kis kis subscription document ke subscriber field me h
+                from:"subscriptions",
+                locaField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        {   //now we have to add extra field along with the current user details and count the subscribers and subscribedTo (so two information also added)
+            $addFields:{
+                subscribersCount:{
+                    $size: "$subscribers"
+                },
+                channelsSubscribedToCount: {
+                    $size: "subscribedTo"
+                },
+                isSubscribed:{
+                    $cond:{
+                        if:{
+                            $in: [req.user?._id,"subscribers.subscriber"]
+                        },
+                        then:true,
+                        else:false
+                    }
+                }
+            }
+        },
+        {//now so much information we are getting but we want selective information to show(what information we actually wanted to send)
+            $project:{
+                fullname: 1,
+                username:1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+            }
+
+        }
+    ])
+
+    console.log(channel) //channel will give array of objects of length 1
+
+    if(!channel?.length){
+        throw new ApiError(404,"channel does not exist")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,channel[0],"User Channel Details fetched successfully")
+    )
+
+
+})
+
+export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUserCoverImage,getUserChannelProfile}
