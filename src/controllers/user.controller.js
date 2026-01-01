@@ -184,7 +184,9 @@ const logoutUser = asyncHandler(async(req,res)=>{
     return res.status(200).clearCookie("accessToken",options).clearCookie("refreshToken",options).json(new ApiResponse(200,{},"User logged Out"))
 })
 
-const refreshAccessToken = asyncHandler(async (req,res)=>{
+const refreshAccessToken = asyncHandler(async (req,res)=>{ 
+    // as user is not getting a login he wants to refresh the AccessToken
+    //even if the user is not login does not mean he does not have cookies in request, browser stores the user cookies so we can get refreshToken from there for our use
     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
     if(!incomingRefreshToken){
