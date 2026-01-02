@@ -83,17 +83,22 @@ const getVideoById = asyncHandler(async (req, res) => {
 }) 
 
 const updateVideoDetails = asyncHandler(async (req, res) => {
-    const { videoIdForUpdate } = req.params
+    const { videoIdtoUpdate } = req.params
     //TODO: update video details like title, description
     const {title, description} = req.body
     
-    const video = await Video.findById(videoIdForUpdate)
+    const video = await Video.findById(videoIdtoUpdate)
+
+    if(!video){
+        throw new ApiError(400, "Video File with this Id not found")
+    }
 
     if(String(video.owner) != String(req.user._id)){
         throw new ApiError(404,"Unauthorized Request to update Video Details")
     }
         
-
+    const thumbnailLocalPath = req.file?.path
+    console.log(thumbnailLocalPath)
     if(title && title.trim()){
         video.title = title
     }else{
@@ -106,6 +111,18 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
         throw new ApiError(400,"Description is blank")
     }
 
+    if(thumbnailLocalPath){
+        console.log("Hii #####")
+        const thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
+        if(!thumbnail){
+            throw new ApiError(400,"Something happened when uploading thumbnail on cloudinary")
+        }
+        console.log(thumbnail)
+        video.thumbnail = thumbnail.url
+    }else{
+        throw new ApiError(400,"Thumbnail file not found")
+    }
+
     await video.save({validateBeforeSave: false})
 
     return res
@@ -113,5 +130,7 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200,{},"Video Details Changed Successfully"))
     
 })
+
+
 
 export {publishAVideo,getVideoById,updateVideoDetails}

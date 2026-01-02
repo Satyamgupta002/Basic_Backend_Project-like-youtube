@@ -22,7 +22,9 @@ router.route("/publish-video").post(
 
 router.route("/c/:videoId").get(getVideoById)
 
-router.route("/c/:videoIdForUpdate").post(upload.none(),updateVideoDetails)
+router.route("/c/:videoIdtoUpdate").post(upload.single("thumbnail"),updateVideoDetails)
+
+
 
 export default router
 
